@@ -20,8 +20,8 @@ keywords = [
     'cto',
     'ceo',
     'tech hiring',
-    'tech hiring manager',
-    'tech hiring director',
+    'founder',
+    'founder',
 ]
 
 
@@ -33,7 +33,7 @@ class Crawl:
     def __login(self):
         options = webdriver.ChromeOptions()
         options.add_argument("--start-maximized")
-        options.add_argument("--headless")
+        #options.add_argument("--headless")
         chrome = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
         chrome.get("https://www.linkedin.com/login")
@@ -46,6 +46,15 @@ class Crawl:
         return chrome
 
     def connect(self):
+        last_height = self.driver.execute_script("return document.body.scrollHeight")
+        while True:
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)  # wait for new content to load
+            new_height = self.driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
+
         profiles = self.driver.find_elements(By.XPATH,
                                    "//button[contains(@id, 'ember') and count(*) = 1 and span[text()='Connect']]")
 
