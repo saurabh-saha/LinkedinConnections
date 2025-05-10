@@ -15,11 +15,11 @@ if not LINKEDIN_EMAIL or not LINKEDIN_PASSWORD:
     raise ValueError("❌ Missing LinkedIn credentials! Check .env file.")
 
 keywords = [
-    'software%20developer',
+    'tech%20lead',
     'engineering%20manager',
     'cto',
     'ceo',
-    'tech hiring',
+    'sde 3',
     'founder',
     'founder',
 ]
@@ -75,31 +75,22 @@ class Crawl:
     def recommended_jobs(self, job_index):
         job_url = f"https://www.linkedin.com/jobs/collections/recommended/"
         self.driver.get(job_url)
-        wait = WebDriverWait(self.driver, 10)
+        time.sleep(5)
         try:
-            job_cards = wait.until(
-                EC.presence_of_all_elements_located((By.CLASS_NAME, "job-card-job-posting-card-wrapper")))
-            if len(job_cards) > job_index:
-                job_card = job_cards[job_index]
-                self.driver.execute_script("arguments[0].scrollIntoView();", job_card)
+            company_element = self.driver.find_element(By.XPATH,
+                                                   "//div[contains(@class, 'job-details-jobs-unified-top-card__company-name')]//a")
+
+            company_url = company_element.get_attribute("href")
+            if company_url:
+                self.driver.get(company_url)
                 time.sleep(5)
-                self.driver.execute_script("arguments[0].click();", job_card)
-                company_element = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located(
-                        (By.XPATH, "//div[contains(@class, 'job-details-jobs-unified-top-card__company-name')]//a")
-                    )
+                people_tab = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH,
+                                                    "//ul[contains(@class, 'org-page-navigation__items')]/li[last()]/a[contains(normalize-space(), 'People')]"))
                 )
-                company_url = company_element.get_attribute("href")
-                if company_url:
-                    self.driver.get(company_url)
-                    time.sleep(5)
-                    people_tab = WebDriverWait(self.driver, 10).until(
-                        EC.presence_of_element_located((By.XPATH,
-                                                        "//ul[contains(@class, 'org-page-navigation__items')]/li[last()]/a[contains(normalize-space(), 'People')]"))
-                    )
-                    people_tab.click()
-                    time.sleep(5)
-                    self.connect()
+                people_tab.click()
+                time.sleep(5)
+                self.connect()
         except Exception as e:
             print(f"❌ Error: {e}")
 
