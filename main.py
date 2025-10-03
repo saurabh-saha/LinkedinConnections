@@ -116,17 +116,3 @@ class Crawl:
         self.connect()
         time.sleep(5)
 
-    def suggestions(self, keyword, page_number):
-        search_url = f"https://www.linkedin.com/search/results/all/?keywords={keyword}"
-        self.driver.get(search_url)
-        time.sleep(5)
-        self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(5)
-        list_items = self.driver.find_elements(By.XPATH, "//li[@data-view-name='search-results-query-suggestion-item']")
-        urls = [li.find_element(By.TAG_NAME, "a").get_attribute("href") for li in list_items]
-        if urls:
-            self.driver.get(urls[0].replace("/all/", "/people/")+f"&page={page_number}")
-            time.sleep(5)
-        self.connect()
-        time.sleep(15)
-
