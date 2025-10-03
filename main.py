@@ -6,7 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import time
 import os
 from dotenv import load_dotenv
-from selenium.webdriver.support.ui import WebDriverWait
+from urllib.parse import urlparse, urlunparse
 
 load_dotenv()
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL")
@@ -55,16 +55,21 @@ class Crawl:
                 break
             last_height = new_height
 
-        profiles = self.driver.find_elements(By.XPATH,
-                                   "//button[contains(@id, 'ember') and count(*) = 1 and span[text()='Connect']]")
+        profiles = self.driver.find_elements(
+            By.XPATH, "//button[.//span[normalize-space()='Connect']]"
+        )
 
         for button in profiles:
             try:
                 self.driver.execute_script("arguments[0].click();", button)
                 time.sleep(2)
+                
+                send_buttons = self.driver.find_elements(
+                    By.XPATH, "//button[.//span[normalize-space()='Send without a note']]"
+                )                
+                if send_buttons:
+                    self.driver.execute_script("arguments[0].click();", send_buttons[0])
 
-                send_button = self.driver.find_element(By.XPATH, "//button[count(*) = 1 and span[text()='Send without a note']]")
-                self.driver.execute_script("arguments[0].click();", send_button)
                 print("Connection Request Sent!")
                 self.connected_count += 1
                 time.sleep(2)
@@ -73,24 +78,34 @@ class Crawl:
                 break
 
     def recommended_jobs(self, job_index):
-        job_url = f"https://www.linkedin.com/jobs/collections/recommended/"
+        job_url = "https://www.linkedin.com/jobs/collections/recommended/"
         self.driver.get(job_url)
         time.sleep(5)
+        
         try:
-            company_element = self.driver.find_element(By.XPATH,
-                                                   "//div[contains(@class, 'job-details-jobs-unified-top-card__company-name')]//a")
-
+            company_element = self.driver.find_element(
+                By.XPATH, "//div[contains(@class, 'job-details-jobs-unified-top-card__company-name')]//a"
+            )
             company_url = company_element.get_attribute("href")
-            if company_url:
-                self.driver.get(company_url)
-                time.sleep(5)
-                people_tab = WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH,
-                                                    "//ul[contains(@class, 'org-page-navigation__items')]/li[last()]/a[contains(normalize-space(), 'People')]"))
-                )
-                people_tab.click()
-                time.sleep(5)
-                self.connect()
+            if not company_url:
+                print("❌ No company URL found.")
+                return
+            
+            # Normalize the company URL to keep only /company/<name>
+            parsed = urlparse(company_url)
+            parts = parsed.path.split('/')
+            try:
+                idx = parts.index("company")
+                base_path = '/'.join(parts[:idx+2])
+            except ValueError:
+                base_path = parsed.path  # fallback
+            
+            people_url = urlunparse((parsed.scheme, parsed.netloc, base_path + "/people/", '', '', ''))            
+            self.driver.get(people_url)
+            time.sleep(5)
+            
+            self.connect()
+            
         except Exception as e:
             print(f"❌ Error: {e}")
 

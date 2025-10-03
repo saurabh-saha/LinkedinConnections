@@ -12,7 +12,7 @@ if __name__ == '__main__':
     week_number = today.isocalendar()[1]  # 0-52
     crawler = Crawl()
 
-    output_dir = "/Users/saurabhsaha/Documents/GitHub/linkedinselenium"  # Specify the folder where the cron job runs
+    output_dir = os.path.dirname(os.path.abspath(__file__))
     output_file = os.path.join(output_dir, f"linkedin_connection_{today.strftime('%Y-%m-%d_%H-%M-%S')}.log")
     with open(output_file, "a") as f:
         crawler.fetch(key, week_number)
