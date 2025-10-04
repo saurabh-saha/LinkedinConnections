@@ -22,6 +22,11 @@ jobs:
       run: |
         pip install -r requirements.txt
 
+    - name: Install Chrome
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y chromium-browser
+
     - name: Run LinkedIn Auto Connector
       env:
         LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}

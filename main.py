@@ -7,6 +7,7 @@ import time
 import os
 from dotenv import load_dotenv
 from urllib.parse import urlparse, urlunparse
+import chromedriver_autoinstaller
 
 load_dotenv()
 LINKEDIN_EMAIL = os.getenv("LINKEDIN_EMAIL")
@@ -37,7 +38,9 @@ class Crawl:
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")
-        chrome = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        chromedriver_autoinstaller.install()
+        chrome = webdriver.Chrome(options=options)
+        #chrome = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
         chrome.get("https://www.linkedin.com/login")
         time.sleep(2)
