@@ -1,0 +1,30 @@
+name: LinkedIn Auto Connector
+
+on:
+  schedule:
+    - cron: "0 10 * * *"  # runs every day at 10:00 UTC
+  workflow_dispatch:      # allow manual run
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Run LinkedIn Auto Connector
+      env:
+        LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}
+        LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
+      run: |
+        python cron.py
