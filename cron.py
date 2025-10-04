@@ -1,7 +1,22 @@
 from datetime import datetime
 import os
+import argparse
 from main import keywords, Crawl
 
+# -------------------------
+# Parse CLI arguments
+# -------------------------
+parser = argparse.ArgumentParser(description="LinkedIn Auto Connector")
+parser.add_argument(
+    "--headless",
+    action="store_true",
+    help="Run Chrome in headless mode (no GUI)"
+)
+args = parser.parse_args()
+
+# -------------------------
+# Main script
+# -------------------------
 if __name__ == '__main__':
     today = datetime.today()
     weekday = today.weekday()  # 0-6
@@ -11,8 +26,9 @@ if __name__ == '__main__':
     print(f"📅 Starting LinkedIn Auto Connector for {today.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"🔑 Keyword for today: {key}")
     print(f"📄 Week number: {week_number}")
+    print(f"⚙️ Running headless: {args.headless}")
 
-    crawler = Crawl()
+    crawler = Crawl(headless=args.headless)
     print("✅ Logged into LinkedIn successfully!")
 
     output_dir = os.path.dirname(os.path.abspath(__file__))

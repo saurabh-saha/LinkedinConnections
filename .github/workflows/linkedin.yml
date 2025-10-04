@@ -32,4 +32,4 @@ jobs:
         LINKEDIN_EMAIL: ${{ secrets.LINKEDIN_EMAIL }}
         LINKEDIN_PASSWORD: ${{ secrets.LINKEDIN_PASSWORD }}
       run: |
-        python cron.py
+        python cron.py --headless

@@ -1,12 +1,11 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import time
+from urllib.parse import urlparse, urlunparse
 import os
 from dotenv import load_dotenv
-from urllib.parse import urlparse, urlunparse
 import chromedriver_autoinstaller
 
 load_dotenv()
@@ -27,98 +26,111 @@ keywords = [
 
 
 class Crawl:
-    def __init__(self):
-        self.driver = self.__login()
+    def __init__(self, headless=True):
+        self.headless = headless
         self.connected_count = 0
+        self.driver = self.__login()
+        self.wait = WebDriverWait(self.driver, 15)  # Wait up to 15 seconds for elements
 
     def __login(self):
-        options = webdriver.ChromeOptions()
-        #options.add_argument("--start-maximized")
-        options.add_argument("--headless")
+        options = Options()
+        if self.headless:
+            options.add_argument("--headless")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")
+
         chromedriver_autoinstaller.install()
-        chrome = webdriver.Chrome(options=options)
-        #chrome = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver = webdriver.Chrome(options=options)
 
-        chrome.get("https://www.linkedin.com/login")
-        time.sleep(2)
-
-        chrome.find_element(By.ID, "username").send_keys(LINKEDIN_EMAIL)
-        chrome.find_element(By.ID, "password").send_keys(LINKEDIN_PASSWORD)
-        chrome.find_element(By.XPATH, "//button[@type='submit']").click()
-        time.sleep(5)
-        return chrome
-
-    def connect(self):
-        last_height = self.driver.execute_script("return document.body.scrollHeight")
-        while True:
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)  # wait for new content to load
-            new_height = self.driver.execute_script("return document.body.scrollHeight")
-            if new_height == last_height:
-                break
-            last_height = new_height
-
-        profiles = self.driver.find_elements(
-            By.XPATH, "//button[.//span[normalize-space()='Connect']]"
-        )
-
-        for button in profiles:
-            try:
-                self.driver.execute_script("arguments[0].click();", button)
-                time.sleep(2)
-                
-                send_buttons = self.driver.find_elements(
-                    By.XPATH, "//button[.//span[normalize-space()='Send without a note']]"
-                )                
-                if send_buttons:
-                    self.driver.execute_script("arguments[0].click();", send_buttons[0])
-
-                print("Connection Request Sent!")
-                self.connected_count += 1
-                time.sleep(2)
-            except Exception as e:
-                print(f"Error: {str(e)}")
-                break
+        driver.get("https://www.linkedin.com/login")
+        wait = WebDriverWait(driver, 15)
+        wait.until(EC.presence_of_element_located((By.ID, "username"))).send_keys(LINKEDIN_EMAIL)
+        driver.find_element(By.ID, "password").send_keys(LINKEDIN_PASSWORD)
+        driver.find_element(By.XPATH, "//button[@type='submit']").click()
+        profile_element_xpath = "//a[@data-view-name='identity-self-profile']"
+        wait.until(EC.visibility_of_element_located((By.XPATH, profile_element_xpath)))
+        print("✅ Logged in successfully")
+        return driver
 
     def recommended_jobs(self, job_index):
         job_url = "https://www.linkedin.com/jobs/collections/recommended/"
         self.driver.get(job_url)
-        time.sleep(5)
-        
+
+        job_list_container_xpath = "//div[contains(@class, 'jobs-search-results-list__list-item--active')]"
+
+        # Wait for the recommended jobs list to be visible
+        self.wait.until(
+            EC.presence_of_element_located((By.XPATH, job_list_container_xpath))
+        )
+
         try:
-            company_element = self.driver.find_element(
-                By.XPATH, "//div[contains(@class, 'job-details-jobs-unified-top-card__company-name')]//a"
+            company_element = self.wait.until(
+                EC.presence_of_element_located((
+                    By.XPATH,
+                    "//div[contains(@class, 'job-details-jobs-unified-top-card__company-name')]//a"
+                ))
             )
             company_url = company_element.get_attribute("href")
             if not company_url:
-                print("❌ No company URL found.")
+                print("❌ No company URL found")
                 return
-            
-            # Normalize the company URL to keep only /company/<name>
+
             parsed = urlparse(company_url)
             parts = parsed.path.split('/')
             try:
                 idx = parts.index("company")
                 base_path = '/'.join(parts[:idx+2])
             except ValueError:
-                base_path = parsed.path  # fallback
-            
-            people_url = urlunparse((parsed.scheme, parsed.netloc, base_path + "/people/", '', '', ''))            
+                base_path = parsed.path
+
+            people_url = urlunparse((parsed.scheme, parsed.netloc, base_path + "/people/", '', '', ''))
             self.driver.get(people_url)
-            time.sleep(5)
-            
+            self.wait.until(
+               EC.presence_of_element_located((
+                    By.CLASS_NAME, "top-card-background-hero-image"
+                ))
+            )
             self.connect()
-            
         except Exception as e:
             print(f"❌ Error: {e}")
 
     def fetch(self, keyword, page_number):
         search_url = f"https://www.linkedin.com/search/results/people/?keywords={keyword}&page={page_number}"
         self.driver.get(search_url)
-        time.sleep(5)
         self.connect()
-        time.sleep(5)
+
+    def connect(self):
+        prev_count = 0
+        while True:
+            buttons = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            curr_count = len(buttons)
+
+            # Scroll if new buttons may exist
+            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            self.wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+
+            buttons_after_scroll = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            new_count = len(buttons_after_scroll)
+
+            # Stop if no new buttons loaded
+            if new_count <= curr_count:
+                break
+
+            prev_count = curr_count
+
+        # Click all buttons
+        for button in buttons_after_scroll:
+            try:
+                self.driver.execute_script("arguments[0].click();", button)
+                send_buttons = self.driver.find_elements(
+                    By.XPATH, "//button[.//span[normalize-space()='Send without a note']]"
+                )
+                if send_buttons:
+                    self.driver.execute_script("arguments[0].click();", send_buttons[0])
+                print("✅ Connection Request Sent")
+                self.connected_count += 1
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                break
 
