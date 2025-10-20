@@ -103,7 +103,8 @@ class Crawl:
     def connect(self):
         prev_count = 0
         while True:
-            buttons = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            buttons = self.driver.find_elements(By.XPATH, "//button[contains(., 'Connect')]")
+            #buttons = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
             curr_count = len(buttons)
 
             # Scroll if new buttons may exist

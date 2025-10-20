@@ -1,8 +1,8 @@
 name: LinkedIn Auto Connector
 
 on:
-  schedule:
-    - cron: "0 10 * * *"  # runs every day at 10:00 UTC
+  # schedule:
+  #   - cron: "0 10 * * *"  # runs every day at 10:00 UTC
   workflow_dispatch:      # allow manual run
 
 jobs:
