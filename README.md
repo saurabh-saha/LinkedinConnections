@@ -8,6 +8,7 @@ This project automates sending connection requests on LinkedIn using Selenium. I
 - Selenium
 - WebDriver (ChromeDriver)
 - .env file for LinkedIn credentials
+- conda environment e.x py3
 
 ## Installation
 

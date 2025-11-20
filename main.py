@@ -1,3 +1,4 @@
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -51,6 +52,7 @@ class Crawl:
         profile_element_xpath = "//a[@data-view-name='identity-self-profile']"
         wait.until(EC.visibility_of_element_located((By.XPATH, profile_element_xpath)))
         print("✅ Logged in successfully")
+        time.sleep(2)
         return driver
 
     def recommended_jobs(self, job_index):
@@ -75,7 +77,6 @@ class Crawl:
             if not company_url:
                 print("❌ No company URL found")
                 return
-
             parsed = urlparse(company_url)
             parts = parsed.path.split('/')
             try:
@@ -85,32 +86,52 @@ class Crawl:
                 base_path = parsed.path
 
             people_url = urlunparse((parsed.scheme, parsed.netloc, base_path + "/people/", '', '', ''))
+            time.sleep(2)
             self.driver.get(people_url)
             self.wait.until(
                EC.presence_of_element_located((
                     By.CLASS_NAME, "top-card-background-hero-image"
                 ))
             )
-            self.connect()
+            time.sleep(2)
+            self.connect(reco=True)
         except Exception as e:
             print(f"❌ Error: {e}")
 
     def fetch(self, keyword, page_number):
         search_url = f"https://www.linkedin.com/search/results/people/?keywords={keyword}&page={page_number}"
         self.driver.get(search_url)
+        time.sleep(2)
         self.connect()
 
-    def connect(self):
+    def connect(self, reco= False):
         prev_count = 0
         while True:
-            buttons = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            if reco:
+                buttons = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            else:
+                buttons = self.driver.find_elements(
+                    By.XPATH,
+                    "//div[@data-view-name='edge-creation-connect-action']"
+                    "//span[span[normalize-space()='Connect']]"
+                )            
             curr_count = len(buttons)
+            if curr_count == 0:
+                print("No connections found")
+                return
 
             # Scroll if new buttons may exist
             self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             self.wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
 
-            buttons_after_scroll = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            if reco:
+                buttons_after_scroll = self.driver.find_elements(By.XPATH, "//button[.//span[normalize-space()='Connect']]")
+            else:
+                buttons_after_scroll = self.driver.find_elements(
+                    By.XPATH,
+                    "//div[@data-view-name='edge-creation-connect-action']"
+                    "//span[span[normalize-space()='Connect']]"
+                )
             new_count = len(buttons_after_scroll)
 
             # Stop if no new buttons loaded
@@ -123,6 +144,7 @@ class Crawl:
         for button in buttons_after_scroll:
             try:
                 self.driver.execute_script("arguments[0].click();", button)
+                time.sleep(1)
                 send_buttons = self.driver.find_elements(
                     By.XPATH, "//button[.//span[normalize-space()='Send without a note']]"
                 )
@@ -130,6 +152,7 @@ class Crawl:
                     self.driver.execute_script("arguments[0].click();", send_buttons[0])
                 print("✅ Connection Request Sent")
                 self.connected_count += 1
+                time.sleep(2)
             except Exception as e:
                 print(f"❌ Error: {e}")
                 break
