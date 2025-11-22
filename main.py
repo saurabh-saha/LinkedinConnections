@@ -145,11 +145,21 @@ class Crawl:
             try:
                 self.driver.execute_script("arguments[0].click();", button)
                 time.sleep(1)
-                send_buttons = self.driver.find_elements(
-                    By.XPATH, "//button[.//span[normalize-space()='Send without a note']]"
-                )
-                if send_buttons:
-                    self.driver.execute_script("arguments[0].click();", send_buttons[0])
+                if reco:
+                    send_buttons = self.driver.find_elements(
+                        By.XPATH, "//button[.//span[normalize-space()='Send without a note']]"
+                    )
+                    if send_buttons:
+                        self.driver.execute_script("arguments[0].click();", send_buttons[0])
+                else:
+                    host = self.driver.find_element(By.XPATH, "/html/body/div/div[4]")
+                    # query inside shadow DOM and return the FINAL element
+                    send_button = self.driver.execute_script("""
+                        return arguments[0].shadowRoot
+                            .querySelector("button[aria-label='Send without a note']");
+                    """, host)
+                    if send_button:
+                        self.driver.execute_script("arguments[0].click();", send_button)
                 print("✅ Connection Request Sent")
                 self.connected_count += 1
                 time.sleep(2)
